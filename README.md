@@ -1,1 +1,1 @@
-# 4_sem_computer_technology
+ Бычков Георгий Б02-108
