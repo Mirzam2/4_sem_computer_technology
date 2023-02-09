@@ -7,13 +7,13 @@ int main(int argc, char **argv)
     std::cout << "Start working\n";
     gmsh::initialize();
 
-    gmsh::model::add("Star");
+    gmsh::model::add("wolf");
 
     // Let's merge an STL mesh that we would like to remesh (from the parent
     // directory):
     try
     {
-        gmsh::merge("Star.stl");
+        gmsh::merge("wolf.stl");
     }
     catch (...)
     {
@@ -27,7 +27,7 @@ int main(int argc, char **argv)
     // curves and points.
 
     // Angle between two triangles above which an edge is considered as sharp:
-    double angle = 40;
+    double angle = 10;
 
     // For complex geometries, patches can be too complex, too elongated or too
     // large to be parametrized; setting the following option will force the
