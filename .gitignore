@@ -34,4 +34,15 @@
 *.
 # vs code
 *.vscode
+
+# снапшоты и видео
+*.vtu
+*.mp4
+*.vts
+
+#Хедер библиотеки
 *gmsh.h
+#cmake
+*.cmake
+lab2/CMakeFiles
+CMakeCache.txt
