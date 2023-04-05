@@ -2,6 +2,8 @@
 #include <vector>
 #include <cmath>
 #include <SFML/Graphics.hpp>
+#include <bits/stdc++.h>
+#include <fstream>
 float G = 10;
 float T = 10;
 class Particle
@@ -17,7 +19,7 @@ public:
     float r = 0.1;
     float x = 10;
     float y = 10;
-    sf::CircleShape image = sf::CircleShape(10.f);
+    sf::CircleShape image = sf::CircleShape(1.f);
 
 private:
     void collision(Particle &other)
@@ -99,9 +101,10 @@ public:
 int main()
 {
 
-    int n = 4;
+    int n = 900;
+    int m0 = 1;
     Particle *arr = new Particle[n];
-    sf::RenderWindow window(sf::VideoMode(1000, 1000), "SFML works!");
+    sf::RenderWindow window(sf::VideoMode(1600, 1000), "SFML works!");
     // sf::VertexArray massiv(sf::Triangles, n);
     for (int i = 0; i < pow(n, 0.5); ++i)
     {
@@ -109,7 +112,14 @@ int main()
         {
             arr[i * int(pow(n, 0.5)) + j] = Particle(10 * i + 200, 10 * j + 200);
         }
-        // arr[i].givev(1 * i, i * i);
+    }
+    // int t = time(NULL);
+    std::seed_seq seed2{0};
+    std::mt19937 e2(seed2);
+    std::normal_distribution<> dist(0, pow(T / m0, 0.5));
+    for (int i = 0; i < n; ++i)
+    {
+        arr[i].givev(dist(e2), dist(e2));
     }
     int FPS = 1000;
     while (window.isOpen())
