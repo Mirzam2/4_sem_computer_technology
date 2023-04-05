@@ -21,13 +21,26 @@ public:
     float y = 10;
     sf::CircleShape image = sf::CircleShape(1.f);
 
-private:
-    void collision(Particle &other)
+public:
+    void collision(Particle *other)
     {
-        // закон сохранения импульса + зсэ
+
+        // закон сохранения импульса
+        vx = (mass * vx + other->mass * other->vx) / (mass + other->mass);
+        vy = (mass * vy + other->mass * other->vy) / (mass + other->mass);
+        // BIG CRUTCH
+        mass += other->mass;
+        other->mass = 0;
+        other->ax = 0;
+        other->ay = 0;
+        other->vx = 0;
+        other->vy = 0;
+        other->x = 0;
+        other->y = 0;
     }
-    void check_collision(Particle &other)
+    bool check_collision(Particle &other)
     {
+        return (range(other) < r + other.r);
         // проверка на слипание
     }
 
@@ -44,8 +57,11 @@ public:
     }
     void grav(Particle *other)
     {
+        if (mass * other->mass == 0)
+        {
+            return; // КОСТЫЛЬ
+        }
         float f = G * mass * other->mass / pow(std::max(range(*other), r + other->r), 3);
-
         ax += f * (other->x - x) / mass;
         ay += f * (other->y - y) / mass;
         other->ax -= f * (other->x - x) / other->mass;
@@ -101,16 +117,16 @@ public:
 int main()
 {
 
-    int n = 900;
+    int n = 400;
     int m0 = 1;
-    Particle *arr = new Particle[n];
+    std::vector<Particle> arr;
     sf::RenderWindow window(sf::VideoMode(1600, 1000), "SFML works!");
     // sf::VertexArray massiv(sf::Triangles, n);
     for (int i = 0; i < pow(n, 0.5); ++i)
     {
         for (int j = 0; j < pow(n, 0.5); ++j)
         {
-            arr[i * int(pow(n, 0.5)) + j] = Particle(10 * i + 200, 10 * j + 200);
+            arr.push_back(Particle(10 * i + 200, 10 * j + 200));
         }
     }
     // int t = time(NULL);
@@ -121,7 +137,9 @@ int main()
     {
         arr[i].givev(dist(e2), dist(e2));
     }
-    int FPS = 1000;
+    // sf::Clock clock;
+    // sf::Time previousTime = clock.getElapsedTime();
+    // sf::Time currentTime;
     while (window.isOpen())
     {
         sf::Event event;
@@ -148,10 +166,24 @@ int main()
             // arr[i].print_data();
             arr[i].move(0.01);
             arr[i].draw(&window); // отрисовку можно делать не каждый шаг, так же можно разделить вычисления и отрисовку, например сохранять в текстовик координаты тел
-        }
-        sf::sleep(sf::seconds(1.0 / FPS)); // надо сделать переменным, что бы не тормозить когда и так не надо
+        }                         // надо сделать переменным, что бы не тормозить когда и так не надо
         window.display();
+        for (int i = 0; i < n; ++i)
+        {
+            for (int j = i + 1; j < n; ++j)
+            {
+                if (arr[i].check_collision(arr[j]))
+                {
+                    std::cout << "BAX" << '\n';
+                    arr[i].collision(&arr[j]);
+                }
+            }
+        }
+
+        // currentTime = clock.getElapsedTime();
+        // float fps = 1.0f / (currentTime.asSeconds() - previousTime.asSeconds()); // the asSeconds returns a float
+        // std::cout << "fps =" << floor(fps) << std::endl;                         // flooring it will make the frame rate a rounded number
+        // previousTime = currentTime;
     }
-    delete[] arr;
     return 0;
 }
