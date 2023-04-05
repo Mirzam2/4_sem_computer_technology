@@ -3,6 +3,7 @@
 #include <cmath>
 #include <SFML/Graphics.hpp>
 float G = 10;
+float T = 10;
 class Particle
 {
 private:
@@ -13,7 +14,7 @@ private:
     float ay = 0;
 
 public:
-    float r = 1;
+    float r = 0.1;
     float x = 10;
     float y = 10;
     sf::CircleShape image = sf::CircleShape(10.f);
@@ -41,12 +42,18 @@ public:
     }
     void grav(Particle *other)
     {
-        float f = G * mass * other->mass / pow(range(*other), 3);
+        float f = G * mass * other->mass / pow(std::max(range(*other), r + other->r), 3);
+
         ax += f * (other->x - x) / mass;
         ay += f * (other->y - y) / mass;
         other->ax -= f * (other->x - x) / other->mass;
         other->ay -= f * (other->y - y) / other->mass;
         // реализует сразу гравитацию и у себя и у того что передали
+    }
+    void cleara()
+    {
+        ax = 0;
+        ay = 0;
     }
     void move(float dt)
     {
@@ -71,21 +78,40 @@ public:
         std::cout << " x: " << x << " y: " << y << " vx: " << vx << " vy: " << vy << " ax: " << ax << " ay: " << ay << '\n';
     }
 };
+// class Solver
+// {
+// private:
+//     const float G = 10;
+//     const float T = 10;
+//     int n = 4;
 
+// public:
+//     Particle *arr;
+
+// public:
+//     Solver(int n) : n(n)
+//     {
+
+//     }
+
+// private:
+// };
 int main()
 {
 
-    int n = 5;
+    int n = 4;
     Particle *arr = new Particle[n];
     sf::RenderWindow window(sf::VideoMode(1000, 1000), "SFML works!");
     // sf::VertexArray massiv(sf::Triangles, n);
-    for (int i = 0; i < n; ++i)
+    for (int i = 0; i < pow(n, 0.5); ++i)
     {
-        arr[i] = Particle(50 * i, 20);
-        //arr[i].givev(1 * i, i * i);
+        for (int j = 0; j < pow(n, 0.5); ++j)
+        {
+            arr[i * int(pow(n, 0.5)) + j] = Particle(10 * i + 200, 10 * j + 200);
+        }
+        // arr[i].givev(1 * i, i * i);
     }
-    sf::CircleShape shape(10.f);
-    int FPS = 10;
+    int FPS = 1000;
     while (window.isOpen())
     {
         sf::Event event;
@@ -93,6 +119,10 @@ int main()
         {
             if (event.type == sf::Event::Closed)
                 window.close();
+        }
+        for (int i = 0; i < n; ++i)
+        {
+            arr[i].cleara();
         }
         for (int i = 0; i < n; ++i)
         {
@@ -106,7 +136,7 @@ int main()
         {
             // std::cout << i << ' ';
             // arr[i].print_data();
-            arr[i].move(1);
+            arr[i].move(0.01);
             arr[i].draw(&window); // отрисовку можно делать не каждый шаг, так же можно разделить вычисления и отрисовку, например сохранять в текстовик координаты тел
         }
         sf::sleep(sf::seconds(1.0 / FPS)); // надо сделать переменным, что бы не тормозить когда и так не надо
