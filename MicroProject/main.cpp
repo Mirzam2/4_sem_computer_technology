@@ -14,6 +14,7 @@ private:
     float vy = 0;
     float ax = 0;
     float ay = 0;
+    float dt = 1.0 / 4;
 
 public:
     float r = 1;
@@ -29,8 +30,8 @@ public:
         vx = (mass * vx + other->mass * other->vx) / (mass + other->mass);
         vy = (mass * vy + other->mass * other->vy) / (mass + other->mass);
         // BIG CRUTCH
-        r *= pow((mass + other->mass) / mass, 1 / 3);
-        image.setRadius(r);
+        // r = pow((mass + other->mass) / mass, 1.0 / 3) * r;
+        image.setRadius(round(r));
         mass += other->mass;
 
         other->mass = 0;
@@ -43,7 +44,7 @@ public:
     }
     bool check_collision(Particle &other)
     {
-        return (range(other) < r + other.r);
+        return (range(other) < (r + other.r));
         // проверка на слипание
     }
 
@@ -76,7 +77,7 @@ public:
         ax = 0;
         ay = 0;
     }
-    void move(float dt)
+    void move()
     {
         // использовать библиотеку https://numerary.readthedocs.io/ru/latest/# что бы использовать метод рангекуты 4 точности Dormand–Prince method
         vx += ax * dt;
@@ -99,106 +100,117 @@ public:
         std::cout << " x: " << x << " y: " << y << " vx: " << vx << " vy: " << vy << " ax: " << ax << " ay: " << ay << '\n';
     }
 };
-// class Solver
-// {
-// private:
-//     const float G = 10;
-//     const float T = 10;
-//     int n = 4;
-
-// public:
-//     Particle *arr;
-
-// public:
-//     Solver(int n) : n(n)
-//     {
-
-//     }
-
-// private:
-// };
-int main()
+class Solver
 {
-
-    int n = 1000;
-    int m0 = 1;
+private:
+    const float G = 1;
+    const int m0 = 1;
+    const float T = 10;
+    int windowx = 1600;
+    int windowy = 1000;
     int xl = 200;
-    int xr = 400;
+    int xr = windowx - 200;
     int yl = 200;
-    int yr = 400;
+    int yr = windowy - 200;
+
+public:
     std::vector<Particle> arr;
-    sf::RenderWindow window(sf::VideoMode(1600, 1000), "SFML works!");
-    std::seed_seq seed1{0};
-    std::mt19937 e1(seed1);
-    std::uniform_real_distribution<> distx(xl, xr);
-    std::uniform_real_distribution<> disty(yl, yr);
-    for (int i = 0; i < n; ++i)
+    int n = 1;
+    sf::RenderWindow window;
+
+public:
+    Solver(int n) : n(n)
     {
-        arr.push_back(Particle(distx(e1), disty(e1)));
+        generate();
+        std::cout << "Generate: n = " << n << '\n';
     }
-    // int t = time(NULL);
-    std::seed_seq seed2{0};
-    std::mt19937 e2(seed2);
-    std::normal_distribution<> dist(0, pow(T / m0, 0.5));
-    for (int i = 0; i < n; ++i)
+    void process()
     {
-        arr[i].givev(dist(e2), dist(e2));
-    }
-    sf::Clock clock;
-    sf::Time previousTime = clock.getElapsedTime();
-    sf::Time currentTime;
-    sf::Text precText;
-    precText.setPosition(sf::Vector2f(10, 0));
-    precText.setFillColor(sf::Color::White);
-    precText.setCharacterSize(20);
-    sf::Font font;
-    font.loadFromFile("font.ttf");
-    precText.setFont(font);
-    while (window.isOpen())
-    {
-        sf::Event event;
-        while (window.pollEvent(event))
+        sf::RenderWindow window(sf::VideoMode(windowx, windowy), "SFML works!");
+        std::cout << "Simulation start \n";
+        sf::Clock clock;
+        sf::Time previousTime = clock.getElapsedTime();
+        sf::Time currentTime;
+        sf::Text precText;
+        precText.setPosition(sf::Vector2f(10, 0));
+        precText.setFillColor(sf::Color::White);
+        precText.setCharacterSize(20);
+        sf::Font font;
+        font.loadFromFile("font.ttf");
+        precText.setFont(font);
+        while (window.isOpen())
         {
-            if (event.type == sf::Event::Closed)
-                window.close();
-        }
-        for (int i = 0; i < n; ++i)
-        {
-            arr[i].cleara();
-        }
-        for (int i = 0; i < n; ++i)
-        {
-            for (int j = i + 1; j < n; ++j)
+            sf::Event event;
+            while (window.pollEvent(event))
             {
-                arr[i].grav(&arr[j]);
+                if (event.type == sf::Event::Closed)
+                    window.close();
             }
-        }
-        window.clear();
-        for (int i = 0; i < n; ++i)
-        {
-            // std::cout << i << ' ';
-            // arr[i].print_data();
-            arr[i].move(0.01);
-            arr[i].draw(&window); // отрисовку можно делать не каждый шаг, так же можно разделить вычисления и отрисовку, например сохранять в текстовик координаты тел
-        }                         // надо сделать переменным, что бы не тормозить когда и так не надо
-        for (int i = 0; i < n; ++i)
-        {
-            for (int j = i + 1; j < n; ++j)
+            for (int i = 0; i < n; ++i)
             {
-                if (arr[i].check_collision(arr[j]))
+                arr[i].cleara();
+            }
+            for (int i = 0; i < n; ++i)
+            {
+                for (int j = i + 1; j < n; ++j)
                 {
-                    // std::cout << "BAX" << '\n';
-                    arr[i].collision(&arr[j]); // удаление сделать через метод вектора, проход сделать через итераторы
+                    arr[i].grav(&arr[j]);
                 }
             }
-        }
+            window.clear();
+            for (int i = 0; i < n; ++i)
+            {
+                // std::cout << i << ' ';
+                // arr[i].print_data();
+                arr[i].move();
+                arr[i].draw(&window); // отрисовку можно делать не каждый шаг, так же можно разделить вычисления и отрисовку, например сохранять в текстовик координаты тел
+            }                         // надо сделать переменным, что бы не тормозить когда и так не надо
+            for (std::vector<Particle>::iterator current = arr.begin(); current != arr.end(); ++current)
+            {
+                for (std::vector<Particle>::iterator j = current + 1; j != arr.end(); ++j)
+                {
+                    if (current->check_collision(*j))
+                    {
+                        // std::cout << "BAX" << '\n';
+                        current->collision(&(*j)); // удаление сделать через метод вектора, проход сделать через итераторы
+                    }
+                }
+            }
 
-        currentTime = clock.getElapsedTime();
-        float fps = 1.0f / (currentTime.asSeconds() - previousTime.asSeconds()); // the asSeconds returns a float
-        precText.setString("FPS: " + std::to_string(fps));
-        window.draw(precText); // flooring it will make the frame rate a rounded number
-        previousTime = currentTime;
-        window.display();
+            currentTime = clock.getElapsedTime();
+            float fps = 1.0f / (currentTime.asSeconds() - previousTime.asSeconds()); // the asSeconds returns a float
+            precText.setString("FPS: " + std::to_string(fps));
+            window.draw(precText); // flooring it will make the frame rate a rounded number
+            previousTime = currentTime;
+            window.display();
+        }
     }
+
+private:
+    void generate()
+    {
+        std::seed_seq seed1{0};
+        std::mt19937 e1(seed1);
+        std::uniform_real_distribution<> distx(xl, xr);
+        std::uniform_real_distribution<> disty(yl, yr);
+        for (int i = 0; i < n; ++i)
+        {
+            arr.push_back(Particle(distx(e1), disty(e1)));
+        }
+        // int t = time(NULL);
+        std::seed_seq seed2{0};
+        std::mt19937 e2(seed2);
+        std::normal_distribution<> dist(0, pow(T / m0, 0.5));
+        for (int i = 0; i < n; ++i)
+        {
+            arr[i].givev(dist(e2), dist(e2));
+        }
+    }
+};
+int main()
+{
+    int n = 1000;
+    Solver solv(n);
+    solv.process();
     return 0;
 }
