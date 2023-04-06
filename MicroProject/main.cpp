@@ -16,10 +16,10 @@ private:
     float ay = 0;
 
 public:
-    float r = 0.1;
-    float x = 10;
-    float y = 10;
-    sf::CircleShape image = sf::CircleShape(1.f);
+    float r = 1;
+    float x = 0;
+    float y = 0;
+    sf::CircleShape image = sf::CircleShape(r, 4);
 
 public:
     void collision(Particle *other)
@@ -29,7 +29,10 @@ public:
         vx = (mass * vx + other->mass * other->vx) / (mass + other->mass);
         vy = (mass * vy + other->mass * other->vy) / (mass + other->mass);
         // BIG CRUTCH
+        r *= pow((mass + other->mass) / mass, 1 / 3);
+        image.setRadius(r);
         mass += other->mass;
+
         other->mass = 0;
         other->ax = 0;
         other->ay = 0;
@@ -117,17 +120,21 @@ public:
 int main()
 {
 
-    int n = 400;
+    int n = 1000;
     int m0 = 1;
+    int xl = 200;
+    int xr = 400;
+    int yl = 200;
+    int yr = 400;
     std::vector<Particle> arr;
     sf::RenderWindow window(sf::VideoMode(1600, 1000), "SFML works!");
-    // sf::VertexArray massiv(sf::Triangles, n);
-    for (int i = 0; i < pow(n, 0.5); ++i)
+    std::seed_seq seed1{0};
+    std::mt19937 e1(seed1);
+    std::uniform_real_distribution<> distx(xl, xr);
+    std::uniform_real_distribution<> disty(yl, yr);
+    for (int i = 0; i < n; ++i)
     {
-        for (int j = 0; j < pow(n, 0.5); ++j)
-        {
-            arr.push_back(Particle(10 * i + 200, 10 * j + 200));
-        }
+        arr.push_back(Particle(distx(e1), disty(e1)));
     }
     // int t = time(NULL);
     std::seed_seq seed2{0};
@@ -137,9 +144,16 @@ int main()
     {
         arr[i].givev(dist(e2), dist(e2));
     }
-    // sf::Clock clock;
-    // sf::Time previousTime = clock.getElapsedTime();
-    // sf::Time currentTime;
+    sf::Clock clock;
+    sf::Time previousTime = clock.getElapsedTime();
+    sf::Time currentTime;
+    sf::Text precText;
+    precText.setPosition(sf::Vector2f(10, 0));
+    precText.setFillColor(sf::Color::White);
+    precText.setCharacterSize(20);
+    sf::Font font;
+    font.loadFromFile("font.ttf");
+    precText.setFont(font);
     while (window.isOpen())
     {
         sf::Event event;
@@ -167,23 +181,24 @@ int main()
             arr[i].move(0.01);
             arr[i].draw(&window); // отрисовку можно делать не каждый шаг, так же можно разделить вычисления и отрисовку, например сохранять в текстовик координаты тел
         }                         // надо сделать переменным, что бы не тормозить когда и так не надо
-        window.display();
         for (int i = 0; i < n; ++i)
         {
             for (int j = i + 1; j < n; ++j)
             {
                 if (arr[i].check_collision(arr[j]))
                 {
-                    std::cout << "BAX" << '\n';
+                    // std::cout << "BAX" << '\n';
                     arr[i].collision(&arr[j]); // удаление сделать через метод вектора, проход сделать через итераторы
                 }
             }
         }
 
-        // currentTime = clock.getElapsedTime();
-        // float fps = 1.0f / (currentTime.asSeconds() - previousTime.asSeconds()); // the asSeconds returns a float
-        // std::cout << "fps =" << floor(fps) << std::endl;                         // flooring it will make the frame rate a rounded number
-        // previousTime = currentTime;
+        currentTime = clock.getElapsedTime();
+        float fps = 1.0f / (currentTime.asSeconds() - previousTime.asSeconds()); // the asSeconds returns a float
+        precText.setString("FPS: " + std::to_string(fps));
+        window.draw(precText); // flooring it will make the frame rate a rounded number
+        previousTime = currentTime;
+        window.display();
     }
     return 0;
 }
