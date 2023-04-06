@@ -175,7 +175,7 @@ int main()
                 if (arr[i].check_collision(arr[j]))
                 {
                     std::cout << "BAX" << '\n';
-                    arr[i].collision(&arr[j]);
+                    arr[i].collision(&arr[j]); // удаление сделать через метод вектора, проход сделать через итераторы
                 }
             }
         }
