@@ -1,11 +1,15 @@
 #include <iostream>
 #include <vector>
+#include <list>
 #include <cmath>
 #include <SFML/Graphics.hpp>
 #include <bits/stdc++.h>
 #include <fstream>
-float G = 10;
-float T = 10;
+#include <filesystem>
+#include <string>
+namespace fs = std::filesystem;
+const float G = 10;
+const float T = 30;
 class Particle
 {
 private:
@@ -14,7 +18,7 @@ private:
     float vy = 0;
     float ax = 0;
     float ay = 0;
-    float dt = 1.0 / 4;
+    static constexpr float dt = 1.0 / 16;
 
 public:
     float r = 1;
@@ -30,7 +34,7 @@ public:
         vx = (mass * vx + other->mass * other->vx) / (mass + other->mass);
         vy = (mass * vy + other->mass * other->vy) / (mass + other->mass);
         // BIG CRUTCH
-        // r = pow((mass + other->mass) / mass, 1.0 / 3) * r;
+        r *= pow((mass + other->mass) / mass, 1.0 / 3);
         image.setRadius(round(r));
         mass += other->mass;
 
@@ -61,10 +65,6 @@ public:
     }
     void grav(Particle *other)
     {
-        if (mass * other->mass == 0)
-        {
-            return; // КОСТЫЛЬ
-        }
         float f = G * mass * other->mass / pow(std::max(range(*other), r + other->r), 3);
         ax += f * (other->x - x) / mass;
         ay += f * (other->y - y) / mass;
@@ -94,27 +94,36 @@ public:
     {
         vx = gvx;
         vy = gvy;
+        //std::cout << vx << " " << vy <<'\n';
     }
     void print_data()
     {
         std::cout << " x: " << x << " y: " << y << " vx: " << vx << " vy: " << vy << " ax: " << ax << " ay: " << ay << '\n';
     }
+    int take_mass() { return mass; }
 };
+std::ostream &operator<<(std::ostream &out, Particle &dirt)
+{
+    out << dirt.take_mass() << " ";
+    return out;
+}
 class Solver
 {
 private:
-    const float G = 1;
     const int m0 = 1;
-    const float T = 10;
-    int windowx = 1600;
-    int windowy = 1000;
-    int xl = 200;
-    int xr = windowx - 200;
-    int yl = 200;
-    int yr = windowy - 200;
+    //параметры окна и пределов генерации:
+    const int windowx = 1900;
+    const int windowy = 1000;
+    const int xl = 400;
+    const int xr = windowx - 400;
+    const int yl = 50;
+    const int yr = windowy - 50;
+    const int retention_rate = 16;
+    const float dt = 1.0 / 16;
+    std::string path;
 
 public:
-    std::vector<Particle> arr;
+    std::list<Particle> arr;
     int n = 1;
     sf::RenderWindow window;
 
@@ -123,9 +132,13 @@ public:
     {
         generate();
         std::cout << "Generate: n = " << n << '\n';
+        path = std::string("data_simulations/Papka_n_") + std::to_string(n) + std::string("_T_") + std::to_string(T) + std::string("/");
+
+        fs::create_directory(path);
     }
     void process()
     {
+        long int s = 0; // счетчик тиков
         sf::RenderWindow window(sf::VideoMode(windowx, windowy), "SFML works!");
         std::cout << "Simulation start \n";
         sf::Clock clock;
@@ -138,6 +151,8 @@ public:
         sf::Font font;
         font.loadFromFile("font.ttf");
         precText.setFont(font);
+        sf::Texture texture;
+        texture.create(window.getSize().x, window.getSize().y);
         while (window.isOpen())
         {
             sf::Event event;
@@ -146,33 +161,39 @@ public:
                 if (event.type == sf::Event::Closed)
                     window.close();
             }
-            for (int i = 0; i < n; ++i)
+            for (auto current = arr.begin(); current != arr.end(); ++current)
             {
-                arr[i].cleara();
+                current->cleara();
             }
-            for (int i = 0; i < n; ++i)
+            for (auto current = arr.begin(); current != arr.end(); ++current)
             {
-                for (int j = i + 1; j < n; ++j)
+                for (auto checking = std::next(current); checking != arr.end(); ++checking)
                 {
-                    arr[i].grav(&arr[j]);
+                    current->grav(&(*checking));
                 }
             }
             window.clear();
-            for (int i = 0; i < n; ++i)
+            for (auto current = arr.begin(); current != arr.end(); ++current)
             {
                 // std::cout << i << ' ';
                 // arr[i].print_data();
-                arr[i].move();
-                arr[i].draw(&window); // отрисовку можно делать не каждый шаг, так же можно разделить вычисления и отрисовку, например сохранять в текстовик координаты тел
-            }                         // надо сделать переменным, что бы не тормозить когда и так не надо
-            for (std::vector<Particle>::iterator current = arr.begin(); current != arr.end(); ++current)
+                current->move();
+                current->draw(&window); // отрисовку можно делать не каждый шаг, так же можно разделить вычисления и отрисовку, например сохранять в текстовик координаты тел
+            }                           // надо сделать переменным, что бы не тормозить когда и так не надо
+            for (auto current = arr.begin(); current != arr.end(); ++current)
             {
-                for (std::vector<Particle>::iterator j = current + 1; j != arr.end(); ++j)
+                auto j = std::next(current);
+                while (j != arr.end())
                 {
                     if (current->check_collision(*j))
                     {
                         // std::cout << "BAX" << '\n';
                         current->collision(&(*j)); // удаление сделать через метод вектора, проход сделать через итераторы
+                        j = arr.erase(j);
+                    }
+                    else
+                    {
+                        ++j;
                     }
                 }
             }
@@ -183,13 +204,21 @@ public:
             window.draw(precText); // flooring it will make the frame rate a rounded number
             previousTime = currentTime;
             window.display();
+            if (s % retention_rate == 0)
+            {
+                texture.update(window);
+                texture.copyToImage().saveToFile(path + std::to_string(int(s * dt)) + std::string(".png"));
+            }
+            ++s;
         }
+        save_data(path + std::string("data.txt"));
     }
 
 private:
     void generate()
     {
-        std::seed_seq seed1{0};
+        int t = time(NULL);
+        std::seed_seq seed1{t};
         std::mt19937 e1(seed1);
         std::uniform_real_distribution<> distx(xl, xr);
         std::uniform_real_distribution<> disty(yl, yr);
@@ -197,14 +226,22 @@ private:
         {
             arr.push_back(Particle(distx(e1), disty(e1)));
         }
-        // int t = time(NULL);
-        std::seed_seq seed2{0};
-        std::mt19937 e2(seed2);
-        std::normal_distribution<> dist(0, pow(T / m0, 0.5));
-        for (int i = 0; i < n; ++i)
+        std::cout << T << "\n";
+        std::normal_distribution<> dist(0, pow(T / m0 / 1 , 0.5));
+        for (auto current = arr.begin(); current != arr.end(); ++current)
         {
-            arr[i].givev(dist(e2), dist(e2));
+            current->givev(dist(e1), dist(e1));
         }
+    }
+    void save_data(std::string filename)
+    {
+        std::ofstream f;
+        f.open(filename);
+        for (auto current = arr.begin(); current != arr.end(); ++current)
+        {
+            f << *current;
+        }
+        f.close();
     }
 };
 int main()
@@ -212,5 +249,6 @@ int main()
     int n = 1000;
     Solver solv(n);
     solv.process();
+
     return 0;
 }

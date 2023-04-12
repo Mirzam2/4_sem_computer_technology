@@ -39,7 +39,8 @@
 *.vtu
 *.mp4
 *.vts
-
+data_simulations
+Videos
 #Хедер библиотеки
 *gmsh.h
 #cmake
