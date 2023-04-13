@@ -1,0 +1,2 @@
+g++ -c main.cpp; g++ main.o -o sfml-app -lsfml-graphics -lsfml-window -lsfml-system;./sfml-app
+g++ main.cpp -O2  -lblas -lsfml-system -lsfml-audio -lsfml-graphics -lsfml-window -o main; ./main

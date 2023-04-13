@@ -9,7 +9,7 @@
 #include <string>
 namespace fs = std::filesystem;
 const float G = 10;
-const float T = 30;
+const float T = 1;
 class Particle
 {
 private:
@@ -24,7 +24,7 @@ public:
     float r = 1;
     float x = 0;
     float y = 0;
-    sf::CircleShape image = sf::CircleShape(r, 4);
+    sf::CircleShape image = sf::CircleShape(r, 10);
 
 public:
     void collision(Particle *other)
@@ -34,7 +34,7 @@ public:
         vx = (mass * vx + other->mass * other->vx) / (mass + other->mass);
         vy = (mass * vy + other->mass * other->vy) / (mass + other->mass);
         // BIG CRUTCH
-        r *= pow((mass + other->mass) / mass, 1.0 / 3);
+        r = pow(pow(r, 3) + pow(other->r, 3), 1.0 / 3);
         image.setRadius(round(r));
         mass += other->mass;
 
@@ -94,7 +94,7 @@ public:
     {
         vx = gvx;
         vy = gvy;
-        //std::cout << vx << " " << vy <<'\n';
+        // std::cout << vx << " " << vy <<'\n';
     }
     void print_data()
     {
@@ -111,11 +111,11 @@ class Solver
 {
 private:
     const int m0 = 1;
-    //параметры окна и пределов генерации:
+    // параметры окна и пределов генерации:
     const int windowx = 1900;
     const int windowy = 1000;
-    const int xl = 400;
-    const int xr = windowx - 400;
+    const int xl = 100;
+    const int xr = 1800;
     const int yl = 50;
     const int yr = windowy - 50;
     const int retention_rate = 16;
@@ -227,7 +227,7 @@ private:
             arr.push_back(Particle(distx(e1), disty(e1)));
         }
         std::cout << T << "\n";
-        std::normal_distribution<> dist(0, pow(T / m0 / 1 , 0.5));
+        std::normal_distribution<> dist(0, pow(T / m0 / 1, 0.5));
         for (auto current = arr.begin(); current != arr.end(); ++current)
         {
             current->givev(dist(e1), dist(e1));
@@ -246,7 +246,8 @@ private:
 };
 int main()
 {
-    int n = 1000;
+    // openmp
+    int n = 10000;
     Solver solv(n);
     solv.process();
 

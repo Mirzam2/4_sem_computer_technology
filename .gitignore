@@ -26,7 +26,6 @@
 *.a
 *.lib
 *.bin
-*.txt
 # Executables
 *.exe
 *.out
@@ -41,6 +40,7 @@
 *.vts
 data_simulations
 Videos
+Prezentaion
 #Хедер библиотеки
 *gmsh.h
 #cmake
